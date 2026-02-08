@@ -1,5 +1,6 @@
 import React from 'react';
 import Section from '../components/Section';
+import Embed from '../components/Embed';
 
 const MLModel = () => {
   return (
@@ -16,6 +17,28 @@ const MLModel = () => {
             Rather than predicting a label, we used unsupervised machine learning to
             discover groups of websites with similar accessibility issues.
           </p>
+        </div>
+
+        {/* Tableau: Cluster Visualization */}
+        <Embed
+          type="tableau"
+          title="Website Accessibility Clusters (PCA Projection)"
+          height="700px"
+          src="https://public.tableau.com/views/DubsTech/ml_cluster_dash?:showVizHome=no&:toolbar=no"
+        />
+
+        <div className="dashboard-explanation">
+          <h3>What This Visualization Shows</h3>
+          <p>
+            Each point represents a website, positioned using PCA so that websites with similar
+            accessibility violation profiles appear closer together. Colors indicate cluster
+            membership from K-means (k = 4).
+          </p>
+          <ul>
+            <li><strong>Dense cluster:</strong> low-risk websites with fewer or less severe violations</li>
+            <li><strong>Separated groups:</strong> moderate/high-risk profiles with distinct violation patterns</li>
+            <li><strong>Outlier:</strong> an extreme-risk website with unusually severe or frequent violations</li>
+          </ul>
         </div>
 
         {/* Approach */}
