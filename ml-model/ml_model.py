@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import silhouette_score
 
 
 # ----------------------------
@@ -38,6 +39,7 @@ def safe_drop_columns(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
     return df.drop(columns=existing, errors="ignore")
 
 
+# Load website-level features
 def get_feature_matrix(
     df: pd.DataFrame,
     id_cols: list[str],
@@ -52,18 +54,10 @@ def get_feature_matrix(
     meta_df = df[meta_cols].copy()
 
     X_df = df.drop(columns=meta_cols, errors="ignore").copy()
-
-    # Drop any completely empty columns
     X_df = X_df.dropna(axis=1, how="all")
-
-    # Coerce all remaining columns to numeric where possible
     for c in X_df.columns:
         X_df[c] = pd.to_numeric(X_df[c], errors="coerce")
-
-    # Fill NaNs with 0 (common for pivoted count features)
     X_df = X_df.fillna(0)
-
-    # Remove constant columns (no variance) — helps clustering
     nunique = X_df.nunique()
     const_cols = nunique[nunique <= 1].index.tolist()
     if const_cols:
@@ -71,7 +65,7 @@ def get_feature_matrix(
 
     return meta_df, X_df
 
-
+# plotting the clausters in a 2D scatterplot
 def plot_elbow(X_scaled: np.ndarray, outpath: Path, kmin: int = 2, kmax: int = 10) -> None:
     inertias = []
     ks = list(range(kmin, kmax + 1))
@@ -134,12 +128,11 @@ def main() -> None:
     df = pd.read_csv(input_path)
 
     print("Raw shape:", df.shape)
-    # Common artifact: a column literally named "nan" from pivots
     if "nan" in df.columns:
         df = df.drop(columns=["nan"])
         print('Dropped column "nan"')
 
-    # Identify metadata columns (adjust if your file uses different names)
+    # Identify metadata columns
     id_cols = ["web_URL_id", "web_URL", "id"]
     label_cols = ["domain_category"]
 
@@ -162,6 +155,10 @@ def main() -> None:
     print(f"Training KMeans with k={args.k}")
     kmeans = KMeans(n_clusters=args.k, random_state=42, n_init="auto")
     clusters = kmeans.fit_predict(X_scaled)
+
+    # Silhouette score
+    sil_score = silhouette_score(X_scaled, clusters)
+    print(f"Silhouette score (k={args.k}): {sil_score:.3f}")
 
     # PCA for visualization
     if args.pca_components >= 2:
@@ -188,7 +185,7 @@ def main() -> None:
     print(f"Saving clusters: {clusters_path}")
     df_out.to_csv(clusters_path, index=False)
 
-    # Save a quick cluster summary table
+    # Cluster summary table
     summary_cols = []
     for c in ["domain_category", "total_violations", "avg_score"]:
         if c in df_out.columns:
